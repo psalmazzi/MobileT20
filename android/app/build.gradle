@@ -1,0 +1,50 @@
+plugins {
+    id 'com.android.application'
+}
+
+// A versão sobe sozinha a cada compilação no GitHub (VERSION_CODE = número da execução).
+def codigoVersao = (System.getenv("VERSION_CODE") ?: "1") as Integer
+
+android {
+    namespace 'br.t20.combate'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "br.t20.combate"
+        minSdk 24
+        targetSdk 34
+        versionCode codigoVersao
+        versionName "1.${codigoVersao}"
+    }
+
+    signingConfigs {
+        release {
+            // Usa a chave dos "secrets" do repositório se existir; senão, a chave pública do projeto (android/keystore).
+            storeFile file(System.getenv("KEYSTORE_FILE") ?: "../keystore/combate-t20.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "combate-t20"
+            keyAlias System.getenv("KEY_ALIAS") ?: "combate"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "combate-t20"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
