@@ -4,7 +4,7 @@ Painel de combate para **Tormenta20 (Jogo do Ano)**: PV/PM com temporários, pod
 
 ## Usar
 
-- **No navegador:** https://psalmazzi.github.io/mobilet20/
+- **No navegador:** https://psalmazzi.github.io/MobileT20/
   No celular, use *Adicionar à tela inicial*: vira um ícone que abre em tela cheia e funciona sem internet.
 - **APK (Android):** baixe o `CombateT20.apk` em **Releases → apk** e instale (permita *fontes desconhecidas*).
 
