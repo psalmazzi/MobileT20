@@ -9,9 +9,15 @@ on:
 permissions:
   contents: write
 
+# Duas execuções seguidas não podem apagar/recriar o release "apk" ao mesmo tempo.
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       TEM_CHAVE_PROPRIA: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
@@ -52,6 +58,8 @@ jobs:
         with:
           name: CombateT20-apk
           path: CombateT20.apk
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Publicar na página de Releases (link fixo)
         env:
@@ -59,6 +67,7 @@ jobs:
         run: |
           gh release delete apk --yes --cleanup-tag || true
           gh release create apk CombateT20.apk \
+            --target "${{ github.sha }}" \
             --title "Combate T20 — APK" \
             --notes "Versão 1.${{ github.run_number }}, gerada automaticamente a partir de ${{ github.sha }}. Instale o CombateT20.apk no Android (permita fontes desconhecidas)." \
             --latest

@@ -11,19 +11,23 @@ permissions:
   pages: write
   id-token: write
 
+# Recomendação do GitHub para Pages: não cancelar uma publicação em andamento
+# (cancelar no meio pode deixar o deployment "pendurado"); execuções intermediárias na fila são puladas.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publicar:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.publicacao.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+        # Se o Pages ainda não estiver ligado (Settings → Pages → Source: GitHub Actions), falha aqui com mensagem clara.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
