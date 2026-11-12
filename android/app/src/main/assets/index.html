@@ -442,6 +442,14 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
 .cab-nome:active,.cab-voltar:active{opacity:.6}
 .cab-pers .cab-nome{overflow:visible;flex:0 1 auto;margin-right:8px}
 .cn-txt{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* feedback de ação sem pop-up: ponto + pulso no Histórico e no ↶ */
+.hist-btn{position:relative}
+.hist-btn.novo::after{content:"";position:absolute;top:6px;right:-8px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.btn.hist-btn.novo::after{top:50%;right:16px;margin-top:-3px}
+@keyframes flashHist{0%{background:rgba(224,184,79,.35);color:var(--text)}100%{background:transparent}}
+.hist-btn.flash{animation:flashHist 1.1s var(--ease)}
+.cab-desf.flash{animation:flashHist 1.1s var(--ease);border-radius:10px}
+@media (prefers-reduced-motion:reduce){.hist-btn.flash,.cab-desf.flash{animation:none}}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -1600,7 +1608,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
     S.log.unshift({ ts: Date.now(), r: S.combate.rodada, d: rotulo });
     if (S.log.length > 40) S.log.length = 40;
     salvar(); render();
-    if (!(opts && opts.semToast)) toast(rotulo, "DESFAZER", desfazer, 6000);
+    marcarHist();
   }
   function desfazer() {
     var u = S.undo.pop(); if (!u) return;
@@ -1608,7 +1616,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
     restaurar(u.s);
     S.log.unshift({ ts: Date.now(), r: S.combate.rodada, d: "Desfeito: " + u.rotulo });
     salvar(); render();
-    toast("Desfeito: " + u.rotulo, "REFAZER", refazer, 3500);
+    marcarHist();
   }
   function refazer() {
     var r = S.redo; if (!r) return;
@@ -1616,7 +1624,15 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
   }
   function editar(fn) { fn(); salvar(); render(); }
 
-  // ───────────── toast ─────────────
+  // ───────────── feedback de ação: sem pop-up; ponto + pulso no botão Histórico (e no ↶ do cabeçalho) ─────────────
+  function marcarHist() {
+    S.ui.histNovo = true; salvar(); render();
+    setTimeout(function () {
+      [].forEach.call(document.querySelectorAll(".hist-btn, .cab-desf"), function (e) { e.classList.remove("flash"); void e.offsetWidth; e.classList.add("flash"); });
+    }, 0);
+  }
+
+  // ───────────── toast (só avisos e erros) ─────────────
   var tToast;
   function toast(msg, btn, fn, ms) {
     var el = document.getElementById("toast");
@@ -1828,7 +1844,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
     var can = !!S.config.canhoto; // canhoto: coluna de ações à esquerda
     h += "<div class='teclado" + (can ? " canhoto" : "") + "'>" + visor + linhas.map(function (l) { return can ? l[1] + l[0] : l[0] + l[1]; }).join("") + "</div>";
     var res = efeitosResolvidos();
-    h += "<div class='vida-rodape'><button data-a='explicar'>Defesa <b class='num'>" + E.calcularDefesa(p, res).total + "</b></button><span>Limite PM <b class='num'>" + E.limitePM(p, res) + "</b></span><button data-a='historico'>Histórico</button></div>";
+    h += "<div class='vida-rodape'><button data-a='explicar'>Defesa <b class='num'>" + E.calcularDefesa(p, res).total + "</b></button><span>Limite PM <b class='num'>" + E.limitePM(p, res) + "</b></span><button class='hist-btn" + (S.ui.histNovo ? " novo" : "") + "' data-a='historico'>Histórico</button></div>";
     return h;
   }
   var ICONE_DIV = "<svg viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='1.75' stroke-linecap='round' aria-hidden='true'><line x1='5' y1='12' x2='19' y2='12'/><circle cx='12' cy='6.5' r='1.1' fill='currentColor'/><circle cx='12' cy='17.5' r='1.1' fill='currentColor'/></svg>";
@@ -2126,7 +2142,8 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
         "<p class='small muted'>Remove efeitos de cena e de rodadas, limpa as situações e volta à rodada 1.</p>" +
         "<button class='btn ghost full' data-a='encerrar' data-v='dia'>Fim do dia (sem descanso)</button>" +
         "<p class='small muted'>Também remove efeitos de dia e zera PV/PM temporários (p.106). Não recupera PV/PM.</p>" +
-        "<button class='link' data-a='irDescanso'>Para recuperar PV/PM, use a aba Descanso ☾</button></div>";
+        "<button class='link' data-a='irDescanso'>Para recuperar PV/PM, use a aba Descanso ☾</button>" +
+        "<div class='sep'></div><button class='btn ghost full hist-btn" + (S.ui.histNovo ? " novo" : "") + "' data-a='historico'>Histórico de ações</button></div>";
       case "avulso": return cab("Modificador avulso") + "<div class='folha-corpo'><p class='small muted'>Bênção do mestre, bônus de aliado, penalidade de terreno… Vale para todos os ataques até você zerar.</p><div class='grid2'>" +
         campoNum("Ataque", "ui.avulsoAtq", S.ui.avulsoAtq) + campoNum("Dano", "ui.avulsoDano", S.ui.avulsoDano) + "</div><button class='btn full' data-a='zerarAvulso'>Zerar</button></div><div class='folha-pe'><button class='btn pri full' data-a='fechar'>Pronto</button></div>";
       case "defesa": var d = E.calcularDefesa(P(), efeitosResolvidos());
@@ -2384,7 +2401,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
       var p = P();
       if (!confirmarDuplo("excluirPers")) { toast("Toque de novo para excluir " + p.nome + "."); return; }
       delete S.personagens[p.id]; delete S.efeitosAtivos[p.id];
-      S.personagemAtivoId = Object.keys(S.personagens)[0]; S.undo = []; S.ui.tela = "inicio"; salvar(); render(); toast(p.nome + " excluído");
+      S.personagemAtivoId = Object.keys(S.personagens)[0]; S.undo = []; S.ui.tela = "inicio"; salvar(); render();
     },
     turno: function () { abrir({ tipo: "turno" }); },
     rodadaFolha: function () { fechar(); A.rodada(); },
@@ -2396,7 +2413,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
       if (v === "del") u.valor = u.valor.slice(0, -1); else if (v === "c") u.valor = ""; else if (u.valor.length < 3) u.valor = (u.valor + v).replace(/^0+/, "");
       vibrar(8); render();
     },
-    metade: function () { var v = parseInt(S.ui.valor || "0", 10); S.ui.valor = String(Math.floor(v / 2) || ""); toast(v + " → ½ = " + Math.floor(v / 2)); render(); },
+    metade: function () { var v = parseInt(S.ui.valor || "0", 10); S.ui.valor = String(Math.floor(v / 2) || ""); render(); },
     tempModo: function (el) { S.config.tempModo = el.dataset.v; salvar(); render(); },
     rapido: function (el) {
       var r = el.dataset.r, d = num(el.dataset.v);
@@ -2422,9 +2439,9 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
         }
         S.ui.valor = "";
       });
-      if (S.undo.length && S.undo[S.undo.length - 1].rotulo === "…") { S.undo[S.undo.length - 1].rotulo = msg; S.log[0].d = msg; toast(msg, "DESFAZER", desfazer, 6000); }
+      if (S.undo.length && S.undo[S.undo.length - 1].rotulo === "…") { S.undo[S.undo.length - 1].rotulo = msg; S.log[0].d = msg; marcarHist(); }
     },
-    historico: function () { abrir({ tipo: "historico" }); },
+    historico: function () { S.ui.histNovo = false; salvar(); abrir({ tipo: "historico" }); },
     explicar: function () { abrir({ tipo: "defesa" }); },
     sit: function (el) { var l = S.ui.situacao, i = l.indexOf(el.dataset.v); if (i >= 0) l.splice(i, 1); else l.push(el.dataset.v); vibrar(10); salvar(); render(); },
     avulso: function () { abrir({ tipo: "avulso" }); },
@@ -2465,7 +2482,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
     calcUsar: function () {
       var r = E.calcular(calcEstado().expr); if (r.erro || r.valor == null || r.valor <= 0) return; // dano nunca < 0 (regras-calculadora §3)
       S.ui.valor = String(Math.min(999, r.valor)); S.ui.alvo = "pv"; S.ui.aba = "vida"; salvar(); render();
-      toast((r.valor > 999 ? "Limitado a 999. " : "") + "Resultado " + Math.min(999, r.valor) + " no teclado. Toque em Dano ou Cura.");
+
     },
     conferir: function () { sheet.conferir = true; render(); setTimeout(function () { var i = document.getElementById("d20"); if (i) i.focus(); }, 50); },
     abaDano: function (el) { sheet.abaDano = el.dataset.v; render(); },
@@ -2484,7 +2501,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
       var id = el.dataset.v;
       if (temCond(id) && !IDX[id].agrava) { acao("Removeu " + nomeCat(id), function () { remCond(id); }); return; }
       var msg; acao("…", function () { msg = addCond(id); return msg ? true : false; });
-      if (msg) { S.undo[S.undo.length - 1].rotulo = msg; toast(msg, "DESFAZER", desfazer, 6000); }
+      if (msg) { S.undo[S.undo.length - 1].rotulo = msg; marcarHist(); }
     },
     remEfeito: function (el) { var ea = ativos().filter(function (e) { return e.uid === el.dataset.v; })[0]; if (!ea) return; acao("Removeu " + ea.nome, function () { S.efeitosAtivos[S.personagemAtivoId] = ativos().filter(function (e) { return e !== ea; }); }); },
     durPasso: function (el) { editar(function () { var ea = ativos().filter(function (e) { return e.uid === el.dataset.v; })[0]; ea.duracao.restante = Math.max(1, num(ea.duracao.restante, 1) + num(el.dataset.d)); }); },
@@ -2495,7 +2512,8 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
         S.combate.rodada++;
         S.ui.situacao = S.ui.situacao.filter(function (id) { var s = SIT.filter(function (x) { return x.id === id; })[0]; return s && s.escopo !== "turno"; });
       }, { semToast: true });
-      toast("Rodada " + S.combate.rodada + (exp.length ? " · expirou: " + exp.map(function (e) { return e.nome; }).join(", ") : ""), "DESFAZER", desfazer, 5000);
+      if (exp.length && S.log[0]) S.log[0].d += " · expirou: " + exp.map(function (e) { return e.nome; }).join(", ");
+      marcarHist();
       if (S.config.lembreteSangrando && temCond("sangrando")) abrir({ tipo: "sangrando" });
     },
     fimCena: function () { abrir({ tipo: "turno" }); },
@@ -2525,7 +2543,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
       d.mods = d.mods.filter(function (id) { return DESC.modificadores.some(function (m) { return m.id === id && modPersistente(m); }); });
       S.ui.descOutroPV = 0; S.ui.descOutroPM = 0;
       S.ui.aba = "vida"; S.ui.alvo = "pv"; salvar(); render(); window.scrollTo(0, 0);
-      toast(msg, "DESFAZER", desfazer, 5000);
+      marcarHist();
     },
     sangRolar: function () { sheet.d20 = E.rolar("1d20", rng).total; render(); },
     sangPassou: function () { fechar(); acao("Sangrando: passou no teste (estável)", function () { remCond("sangrando"); }); },
@@ -2608,7 +2626,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
       if (a.favorita) p.armas.forEach(function (x) { if (x.id !== a.id) x.favorita = false; });
       var i = p.armas.map(function (x) { return x.id; }).indexOf(a.id);
       if (i >= 0) p.armas[i] = a; else p.armas.push(a);
-      salvar(); fechar(); toast("Arma salva");
+      salvar(); fechar();
     },
     excluirArma: function () { var id = sheet.draft.id; fechar(); acao("Excluiu arma", function () { var p = P(); p.armas = p.armas.filter(function (a) { return a.id !== id; }); }); },
     novoPoder: function () { abrir({ tipo: "poder", novo: true, draft: { id: "h" + uid(), nome: "", custoPM: 1, duracao: { tipo: "cena" }, efeitosAtivados: [], descricao: "" } }); },
@@ -2619,7 +2637,7 @@ div.cab-pers{display:flex;align-items:center;gap:0;flex:1;min-width:0;height:38p
       hb.efeitosAtivados = normEfeitos(hb.efeitosAtivados);
       var i = p.habilidades.map(function (x) { return x.id; }).indexOf(hb.id);
       if (i >= 0) p.habilidades[i] = hb; else p.habilidades.push(hb);
-      salvar(); fechar(); toast("Poder salvo");
+      salvar(); fechar();
     },
     excluirPoder: function () { var id = sheet.draft.id; fechar(); acao("Excluiu poder", function () { var p = P(); p.habilidades = p.habilidades.filter(function (h) { return h.id !== id; }); }); },
     config: function () { abrir({ tipo: "config" }); },
